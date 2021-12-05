@@ -9,3 +9,4 @@ output:
   html_document:
     css: site_style.css
 
+output_dir: "docs""
