@@ -265,11 +265,13 @@ $(document).ready(function () {
 </div>
 
 
-<p>#　データ整形</p>
+<div id="データ整形" class="section level1">
+<h1>データ整形</h1>
+</div>
 <div id="記述統計量" class="section level1">
 <h1>記述統計量</h1>
-<div id="オンラインマッチ対戦数累計" class="section level2">
-<h2>オンラインマッチ対戦数（累計）</h2>
+<div id="オンラインマッチ対戦" class="section level2">
+<h2>オンラインマッチ対戦</h2>
 <pre class="r"><code>score %&gt;% 
   filter(CP == 0) %&gt;% 
   count()</code></pre>
