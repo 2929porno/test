@@ -1,0 +1,158 @@
+---
+title: "dataset ~ basic stats"
+author: "2929porno"
+date: "2021/12/05"
+output: html_document
+---
+
+# データ整形
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+score <- read_csv("スコアボード.csv")
+Manager <- read_csv("監督フォーメーション.csv")
+score <- score %>%
+  filter(rate != "") %>%   
+  mutate(CP = ifelse(opponent_rate == "CP",1,0),　　　
+         CP = as.factor(CP),
+         opponent_rate = as.numeric(opponent_rate)) %>%
+  mutate(called_game = ifelse(possesion == "C",1,0),
+         possesion = as.numeric(possesion),
+         pass = as.numeric(pass),
+         shot = as.numeric(shot))
+
+#resultの数値変換
+score <- score %>% 
+  mutate(W = str_detect(result,"勝"),
+         D = str_detect(result,"引"),
+         L = str_detect(result,"負"))
+#Managerデータ追加
+score_manager <- left_join(score, Manager,
+                           by= "manager")
+score <- score %>%
+  filter(rate != "") %>%   
+  mutate(CP = ifelse(opponent_rate == "CP",1,0),　　　
+         CP = as.factor(CP),
+         opponent_rate = as.numeric(opponent_rate)) %>%
+  mutate(called_game = ifelse(possesion == "C",1,0),
+         possesion = as.numeric(possesion),
+         pass = as.numeric(pass),
+         shot = as.numeric(shot))
+```
+
+```{r dataset, include=FALSE}
+
+score %>% 
+  group_by(manager) %>% 
+  summarise(GF = mean(GF),
+            GA = mean(GA),
+            Win_rate = mean(W),
+            lose_rate = mean(L),
+            n = n(),
+            rate = min(rate))
+
+```
+
+# 記述統計量
+
+## オンラインマッチ対戦
+
+```{r}
+score %>% 
+  filter(CP == 0) %>% 
+  count()
+
+```
+
+# フォーメーション分析
+
+## 自陣フォーメーション
+
+```{r}
+score_manager %>% 
+  filter(CP == 0) %>% 
+  group_by(manager) %>% 
+  summarise(n = n(),
+            GF = mean(GF,na.rm = T),
+            GA = mean(GA,na.rm = T),
+            win = sum(W),
+            shot = mean(shot,na.rm = T),
+            pass = mean(pass,na.rm = T),
+            Win_rate = mean(W),
+            lose_rate = mean(L),
+            possesion = mean(possesion,na.rm = T))
+
+```
+
+## レート推移（監督色分け）
+
+```{r}
+score_manager %>%
+  filter(CP == 0) %>%
+  ggplot(aes(x= 1:nrow(.), y= rate, color = factor(manager)))+
+  geom_point()+
+  geom_line()+
+  labs(x = "試合数", y = "RATE", title  = "レート推移",
+       family = "Meiryo", color = "manager")+
+  scale_y_continuous(breaks = seq(1225, 1500, by = 10))+
+  scale_x_continuous(breaks = seq(0, 200, by = 10))
+```
+
+## 相手フォーメーションごとの戦績
+
+```{r}
+#全戦績平均
+score %>% 
+  filter(CP == 0,
+         manager %in% c(11)) %>% 
+  summarise(GF = mean(GF),
+            GA = mean(GA),
+            Win_rate = mean(W),
+            lose_rate = mean(L),
+            n = n(),
+            rate = min(rate)) %>% 
+  filter(n >= 2)
+
+#相手フォーメーションごと戦績
+result_opsys <- score_manager %>% 
+  filter(CP == 0,
+         manager %in% c(11)) %>% 
+  group_by(opponent_system) %>% 
+  summarise(GF = mean(GF),
+            GA = mean(GA),
+            Win_rate = mean(W),
+            lose_rate = mean(L),
+            shot = mean(shot,na.rm = T),
+            pass = mean(pass,na.rm = T),
+            possesion = mean(possesion,na.rm = T),
+            n = n(),
+            rate = min(rate)) %>% 
+  filter(n >= 2)
+
+score_manager %>% 
+  filter(CP == 0,
+         manager == 11) %>% 
+  ggplot()+
+  geom_boxplot(aes(x = factor(opponent_system), y = shot))+
+  geom_hline(yintercept = mean(score_manager$shot, na.rm = T))
+
+#結果①
+result_opsys
+#結果②
+#plot
+result_opsys %>% 
+  mutate(opponent_system = as.factor(opponent_system)) %>% 
+  arrange(desc(opponent_system) )%>% 
+  ggplot(aes(x = opponent_system, y = Win_rate,
+             fill = Win_rate))+
+  geom_hline(yintercept = 0.5, lty = 2, color = "#1b6401")+
+  geom_bar(aes(y = Win_rate), stat = "identity")+
+  geom_text(aes(label = round(Win_rate,3)), hjust = 1.4)+
+  scale_fill_gradient2(low = "grey", high = "#64011b", aesthetics = "fill")+
+  labs(y = "勝率", fill = "勝率")+
+  coord_flip()+
+  labs(title = "相手システムごとの戦績")
+
+
+```
